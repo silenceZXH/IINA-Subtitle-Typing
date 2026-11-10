@@ -54,7 +54,7 @@
 | 功能 | 说明 |
 | --- | --- |
 | **逐句 A-B 循环** | 当前句自动循环播放，打对之前可以无限次重听 |
-| **逐字符实时比对** | 正确 <span>绿</span>、错误 <span>红</span>、待输入灰，退格修正即时生效 |
+| **逐字符实时比对** | 正确**绿**、错误**红**、待输入灰，退格修正即时生效 |
 | **打对自动放行** | 整句输入正确后自动继续播放到下一句并暂停 |
 | **两种输入面板** | 视频内嵌悬浮面板 / 独立 macOS 窗口，随时切换 |
 | **双字幕来源** | 外挂 SRT 文件（可预读全文、有进度） / 视频内嵌软字幕（实时跟随） |
@@ -103,7 +103,7 @@
 
 ### 方式二：下载发布包
 
-从 [Releases](../../releases) 下载 `iina-typing-practice-x.y.z.iinaplgz`，双击用 IINA 打开即可安装（`.iinaplgz` 就是改了扩展名的 zip）。
+从 [Releases](https://github.com/silenceZXH/IINA-Subtitle-Typing/releases) 下载 `iina-typing-practice-x.y.z.iinaplgz`，双击用 IINA 打开即可安装（`.iinaplgz` 就是改了扩展名的 zip）。
 
 ### 方式三：本地开发安装
 
