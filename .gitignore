@@ -1,0 +1,7 @@
+# macOS
+.DS_Store
+._*
+
+# 打包产物（build.sh 生成到 dist/）
+dist/
+*.iinaplgz

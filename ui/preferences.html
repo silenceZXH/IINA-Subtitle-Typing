@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>字幕打字练习设置</title>
+</head>
+<body>
+  <h2>字幕打字练习设置</h2>
+  <p class="small secondary">修改后立即生效（需重新开始练习）</p>
+
+  <div class="pref-section">
+    <strong>A-B 循环播放</strong>
+
+    <div class="pref-section">
+      <label for="abPauseDuration">循环结束前暂停时间（秒）</label>
+      <input type="number" id="abPauseDuration"
+             min="0" max="5" step="0.5" style="width: 80px">
+      <p class="small secondary pref-help">每次循环到结束前暂停多少秒再跳回开始（0 = 不暂停）</p>
+    </div>
+
+    <div class="pref-section">
+      <label for="abExtendDuration">循环延长秒数</label>
+      <input type="number" id="abExtendDuration"
+             min="0" max="10" step="0.5" style="width: 80px">
+      <p class="small secondary pref-help">间隔长时，循环结束时间延长多少秒听余音</p>
+    </div>
+
+    <div class="pref-section">
+      <label for="abGapThreshold">间隔阈值（秒）</label>
+      <input type="number" id="abGapThreshold"
+             min="0" max="5" step="0.5" style="width: 80px">
+      <p class="small secondary pref-help">下一句与当前句间隔 &gt; 此值才延长，否则不延长</p>
+    </div>
+
+    <div class="pref-section">
+      <label for="abShortSubThreshold">短字幕保护阈值（秒）</label>
+      <input type="number" id="abShortSubThreshold"
+             min="0.5" max="5" step="0.5" style="width: 80px">
+      <p class="small secondary pref-help">字幕时长 ≤ 此值时不暂停（避免太短体验差）</p>
+    </div>
+  </div>
+
+  <p id="status" class="small secondary"></p>
+
+  <script>
+    const KEYS = ["abPauseDuration", "abExtendDuration", "abGapThreshold", "abShortSubThreshold"];
+    const DEFAULTS = {
+      abPauseDuration: 1.0,
+      abExtendDuration: 2.0,
+      abGapThreshold: 1.0,
+      abShortSubThreshold: 1.5,
+    };
+    const prefs = window.iina.preferences;
+    const statusEl = document.getElementById("status");
+
+    // 读：callback 异步 API
+    function load() {
+      let loaded = 0;
+      KEYS.forEach((k) => {
+        try {
+          prefs.get(k, (v) => {
+            const el = document.getElementById(k);
+            if (el) el.value = (v != null) ? v : DEFAULTS[k];
+            loaded++;
+            if (loaded === KEYS.length) showStatus("已加载当前设置");
+          });
+        } catch (e) {
+          // 失败用默认值
+          const el = document.getElementById(k);
+          if (el) el.value = DEFAULTS[k];
+        }
+      });
+    }
+
+    // 写：set + sync 立即落盘
+    function save(key, value) {
+      try {
+        prefs.set(key, value);
+        try { prefs.sync(); } catch (e) {}
+        showStatus(`${key} = ${value} 已保存`);
+      } catch (e) {
+        showStatus(`保存失败: ${e}`);
+      }
+    }
+
+    function showStatus(text) {
+      if (!statusEl) return;
+      statusEl.textContent = text;
+      clearTimeout(showStatus._t);
+      showStatus._t = setTimeout(() => { statusEl.textContent = ""; }, 2500);
+    }
+
+    // 绑定 change 事件（失焦时保存）
+    KEYS.forEach((k) => {
+      const el = document.getElementById(k);
+      if (!el) return;
+      el.addEventListener("change", () => {
+        const v = parseFloat(el.value);
+        if (!isNaN(v)) save(k, v);
+        else el.value = DEFAULTS[k];
+      });
+    });
+
+    load();
+  </script>
+</body>
+</html>

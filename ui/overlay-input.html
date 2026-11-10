@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>字幕打字练习 - 内嵌模式</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+      color: #fff;
+    }
+    /* 面板固定在视频底部 */
+    .panel-wrap {
+      position: absolute;
+      left: 50%;
+      bottom: 28px;
+      transform: translateX(-50%);
+      width: 86%;
+      max-width: 1100px;
+    }
+    .panel {
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 14px;
+      padding: 14px 18px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: rgba(255,255,255,0.55);
+    }
+    .top-bar .title { font-weight: 600; color: rgba(255,255,255,0.85); font-size: 13px; }
+    .top-bar .progress { color: rgba(255,255,255,0.5); }
+    .stats { font-size: 12px; color: rgba(255,255,255,0.55); }
+    .stats .hint { color: #60a5fa; font-weight: 600; }
+    .target {
+      font-family: "JetBrains Mono", "Menlo", "SF Mono", monospace;
+      font-size: 21px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 34px;
+      padding: 2px 0;
+    }
+    .target .char { transition: color 0.08s; }
+    .target .char.correct { color: #4ade80; }
+    .target .char.wrong { color: #f87171; text-decoration: underline; }
+    .target .char.pending { color: rgba(255,255,255,0.35); }
+    .target .char.skip { color: rgba(255,255,255,0.18); }
+    .target.blind {
+      color: rgba(255,255,255,0.5);
+      font-style: italic;
+      font-size: 16px;
+      min-height: 28px;
+    }
+    input {
+      font-family: "JetBrains Mono", "Menlo", "SF Mono", monospace;
+      font-size: 19px;
+      padding: 9px 14px;
+      border: 2px solid #3b82f6;
+      border-radius: 8px;
+      outline: none;
+      width: 100%;
+      background: rgba(255,255,255,0.07);
+      color: #fff;
+      caret-color: #60a5fa;
+    }
+    input:focus { border-color: #60a5fa; background: rgba(255,255,255,0.11); }
+    input::placeholder { color: rgba(255,255,255,0.28); }
+    input:disabled { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.4); border-color: rgba(255,255,255,0.15); }
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    button {
+      padding: 5px 11px;
+      border: none;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.11);
+      color: rgba(255,255,255,0.85);
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    button:hover:not(:disabled) { background: rgba(255,255,255,0.2); }
+    button.primary { background: #3b82f6; color: #fff; }
+    button.primary:hover:not(:disabled) { background: #2563eb; }
+    button.secondary { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
+    button.danger { background: rgba(239,68,68,0.55); color: #fff; }
+    button.danger:hover:not(:disabled) { background: rgba(239,68,68,0.75); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .done-screen {
+      text-align: center;
+      padding: 18px 10px;
+      font-size: 17px;
+      color: #4ade80;
+    }
+    .done-screen .big { font-size: 30px; margin-bottom: 8px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="panel-wrap">
+    <div class="panel" id="panel">
+      <div class="top-bar">
+        <span class="title">字幕打字练习</span>
+        <span class="progress" id="progress">等待加载...</span>
+      </div>
+      <div class="stats" id="stats"></div>
+
+      <div class="target" id="target">等待字幕加载...</div>
+
+      <input type="text" id="input" placeholder="在此输入..." autocomplete="off" autofocus data-clickable>
+
+      <div class="actions">
+        <button class="primary" id="done-btn" data-clickable onclick="window.__onDone()">完成 (Enter)</button>
+        <button data-clickable onclick="window.__onSkip()">跳过</button>
+        <button data-clickable onclick="window.__onReset()">重置</button>
+        <button data-clickable onclick="window.__onPrev()">上一句</button>
+        <button data-clickable onclick="window.__onNext()">下一句</button>
+        <button data-clickable onclick="window.__onWindowMode()">窗口模式</button>
+        <button class="danger" data-clickable onclick="window.__onClose()">关闭</button>
+      </div>
+
+      <div class="done-screen hidden" id="done-screen">
+        <div class="big">练习完成！</div>
+        <div id="done-stats"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const targetEl = document.getElementById("target");
+    const inputEl = document.getElementById("input");
+    const progressEl = document.getElementById("progress");
+    const statsEl = document.getElementById("stats");
+    const doneBtn = document.getElementById("done-btn");
+    const doneScreen = document.getElementById("done-screen");
+
+    let currentTarget = "";
+    let currentIndex = -1;
+    let currentTotal = 0;
+    let blindMode = false;
+    let correctionsCount = 0;
+    let alreadySubmitted = false;
+    let receivedSentence = false;
+    let blindResultShown = false;
+
+    function log(msg) {
+      console.log("[overlay-input] " + msg);
+    }
+
+    // ============ 标点豁免 ============
+    function isComparableChar(ch) {
+      return /[a-zA-Z0-9 ,.，。\u4e00-\u9fff\u3040-\u30ff]/.test(ch);
+    }
+
+    function normalizeForCompare(str) {
+      let result = "";
+      for (const ch of str) {
+        if (isComparableChar(ch)) {
+          result += ch.toLowerCase();
+        }
+      }
+      return result;
+    }
+
+    // ============ 发送动作到 plugin ============
+    function sendAction(type, extra) {
+      const data = Object.assign({ type }, extra || {});
+      log("发送 action: " + type);
+      try {
+        iina.postMessage("action", data);
+      } catch (e) {
+        log("postMessage 失败: " + e);
+      }
+    }
+
+    // ============ 接收 plugin 推送 ============
+    iina.onMessage("load-sentence", (data) => {
+      log("收到 load-sentence: idx=" + data.index + ", total=" + data.total);
+      receivedSentence = true;
+      alreadySubmitted = false;
+      blindResultShown = false;
+      currentTarget = data.text || "";
+      currentIndex = data.index;
+      currentTotal = data.total || 0;
+      blindMode = !!data.blindMode;
+      correctionsCount = 0;
+
+      const isEmbedded = (data.index < 0);
+      progressEl.textContent = isEmbedded ? "内嵌字幕模式" : `${currentIndex + 1} / ${currentTotal}`;
+      statsEl.innerHTML = blindMode
+        ? '<span class="hint">盲打模式</span>：凭记忆打字，按 Enter 查看比对结果'
+        : '<span class="hint">打完按 Enter 提交</span>（忽略大小写，标点可跳过）';
+      doneBtn.textContent = blindMode ? "查看结果 (Enter)" : "完成 (Enter)";
+
+      inputEl.disabled = false;
+      inputEl.value = "";
+      inputEl.focus();
+      doneBtn.disabled = false;
+
+      renderTarget("");
+      doneScreen.classList.add("hidden");
+      document.getElementById("panel").classList.remove("hidden");
+      targetEl.classList.remove("hidden");
+      inputEl.classList.remove("hidden");
+      document.querySelector(".actions").classList.remove("hidden");
+    });
+
+    iina.onMessage("practice-finished", (data) => {
+      log("收到 practice-finished");
+      doneScreen.classList.remove("hidden");
+      if (data && data.embedded) {
+        document.getElementById("done-stats").textContent = `共完成 ${data.total} 句`;
+      } else {
+        const acc = data && data.accuracy != null ? Math.round(data.accuracy * 100) : 0;
+        document.getElementById("done-stats").textContent = `正确率 ${acc}% | 共 ${data.total} 句`;
+      }
+      targetEl.classList.add("hidden");
+      inputEl.classList.add("hidden");
+      document.querySelector(".actions").classList.add("hidden");
+    });
+
+    // ============ 渲染目标句 ============
+    function renderTarget(rawTyped) {
+      if (blindMode) {
+        targetEl.classList.add("blind");
+        targetEl.textContent = "盲打模式：原句已隐藏，凭记忆输入，按 Enter 提交。";
+        return;
+      }
+      targetEl.classList.remove("blind");
+      targetEl.innerHTML = "";
+
+      const normalizedTyped = normalizeForCompare(rawTyped);
+      let typedIdx = 0;
+
+      for (let i = 0; i < currentTarget.length; i++) {
+        const ch = currentTarget[i];
+
+        if (ch === "\n") {
+          targetEl.appendChild(document.createElement("br"));
+          continue;
+        }
+
+        const span = document.createElement("span");
+        if (isComparableChar(ch)) {
+          let cls = "char ";
+          if (typedIdx < normalizedTyped.length) {
+            cls += normalizedTyped[typedIdx] === ch.toLowerCase() ? "correct" : "wrong";
+          } else {
+            cls += "pending";
+          }
+          span.className = cls;
+          span.textContent = ch === " " ? "\u00A0" : ch;
+          typedIdx++;
+        } else {
+          span.className = "char skip";
+          span.textContent = ch === " " ? "\u00A0" : ch;
+        }
+        targetEl.appendChild(span);
+      }
+    }
+
+    // ============ 输入处理 ============
+    inputEl.addEventListener("input", () => {
+      renderTarget(inputEl.value);
+    });
+
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace") {
+        correctionsCount++;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (!alreadySubmitted) {
+          alreadySubmitted = true;
+          submitCorrect();
+        }
+      }
+    });
+
+    function submitCorrect() {
+      if (blindMode && !blindResultShown) {
+        blindResultShown = true;
+        const wasBlind = true;
+        blindMode = false;
+        renderTarget(inputEl.value);
+        blindMode = wasBlind;
+        statsEl.innerHTML = '<span class="hint">查看红绿结果，按 Enter 或点"确认并继续"进入下一句</span>';
+        doneBtn.textContent = "确认并继续 (Enter)";
+        doneBtn.disabled = false;
+        alreadySubmitted = false;
+        log("盲打结果已展示，等待确认");
+        return;
+      }
+
+      alreadySubmitted = true;
+      const normalizedTyped = normalizeForCompare(inputEl.value);
+      const normalizedTarget = normalizeForCompare(currentTarget);
+
+      let errors = 0;
+      const len = Math.min(normalizedTyped.length, normalizedTarget.length);
+      for (let i = 0; i < len; i++) {
+        if (normalizedTyped[i] !== normalizedTarget[i]) errors++;
+      }
+      errors += Math.abs(normalizedTyped.length - normalizedTarget.length);
+
+      inputEl.disabled = true;
+      doneBtn.disabled = true;
+
+      log("提交 typed-correct: errors=" + errors + ", corrections=" + correctionsCount);
+      sendAction("typed-correct", { index: currentIndex, errors, corrections: correctionsCount });
+    }
+
+    // ============ 按钮处理 ============
+    window.__onDone = function() {
+      log("点击 完成");
+      if (alreadySubmitted) return;
+      submitCorrect();
+    };
+    window.__onSkip = function() {
+      log("点击 跳过");
+      sendAction("skip");
+    };
+    window.__onReset = function() {
+      log("点击 重置");
+      sendAction("reset");
+    };
+    window.__onPrev = function() {
+      log("点击 上一句");
+      sendAction("prev");
+    };
+    window.__onNext = function() {
+      log("点击 下一句");
+      sendAction("next");
+    };
+    window.__onWindowMode = function() {
+      log("点击 切换到窗口模式");
+      sendAction("switch-to-window");
+    };
+    window.__onClose = function() {
+      log("点击 关闭");
+      sendAction("window-closed");
+    };
+
+    // ============ 窗口加载完成 ============
+    log("overlay 加载完成，发送 overlay-ready");
+    iina.postMessage("overlay-ready", {});
+
+    // 尝试自动聚焦输入框
+    setTimeout(() => {
+      try { inputEl.focus(); } catch (e) {}
+    }, 300);
+
+    // Fallback: 请求当前句
+    let requestCount = 0;
+    const requestTimer = setInterval(() => {
+      if (receivedSentence) {
+        clearInterval(requestTimer);
+        return;
+      }
+      requestCount++;
+      if (requestCount <= 8) {
+        log(`fallback: 请求当前句 (${requestCount}/8)`);
+        iina.postMessage("request-current", {});
+      } else {
+        clearInterval(requestTimer);
+        log("fallback: 8 次请求无响应");
+      }
+    }, 250);
+
+    renderTarget("");
+  </script>
+</body>
+</html>

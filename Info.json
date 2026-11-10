@@ -1,0 +1,20 @@
+{
+  "name": "iina-typing-practice",
+  "identifier": "com.aaron.typing-practice",
+  "version": "0.4.0",
+  "ghRepo": "silenceZXH/IINA-Subtitle-Typing",
+  "ghVersion": 1,
+  "description": "IINA 字幕打字练习插件：逐句打字学习英语（支持视频内嵌输入面板）",
+  "author": {
+    "name": "Aaron"
+  },
+  "entry": "src/main.js",
+  "preferencesPage": "ui/preferences.html",
+  "preferenceDefaults": {
+    "abPauseDuration": 1.0,
+    "abExtendDuration": 2.0,
+    "abGapThreshold": 1.0,
+    "abShortSubThreshold": 1.5
+  },
+  "permissions": ["show-osd", "file-system", "video-overlay"]
+}
