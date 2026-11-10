@@ -38,27 +38,23 @@
 ## 二、项目目录结构
 
 ```
-IINA_learn-english-tool/
-├── IINA字幕打字插件 - 产品需求计划书（最终版）.md   # 已存在
-├── 开发计划.md                                     # 本文件
-├── iina-typing-practice.iinaplugin/                # 插件主包
-│   ├── Info.json                                   # 插件清单
-│   ├── src/
-│   │   ├── main.js                                 # 主入口（核心逻辑）
-│   │   ├── subtitle-parser.js                      # SRT/SSA 解析模块
-│   │   ├── embedded-collector.js                   # 内嵌字幕轮询收集器
-│   │   └── state.js                                # 状态机与全局状态
-│   ├── ui/
-│   │   ├── input-window.html                       # 独立输入窗口
-│   │   ├── input-window.js                         # 输入窗口逻辑
-│   │   ├── input-window.css
-│   │   ├── overlay.html                            # 视频顶部叠加层
-│   │   ├── overlay.js
-│   │   └── overlay.css
-│   └── icons/
-│       ├── 24x24.png
-│       └── 48x48.png
+IINA-Subtitle-Typing/                    # 仓库根即插件包根
+├── Info.json                            # 插件清单（含 ghRepo / ghVersion）
+├── src/
+│   └── main.js                          # 主入口（核心逻辑，当前实现）
+├── ui/
+│   ├── overlay-input.html               # 视频内嵌输入面板
+│   ├── input-window.html                # 独立窗口输入面板
+│   └── preferences.html                 # 设置页
+├── docs/                                # PRD / 架构梳理 / 开发计划
+├── screenshots/                         # README 截图
+├── build.sh                             # 打包脚本（iina-plugin pack 的等价实现）
+└── .github/workflows/release.yml        # 打 tag 自动构建并发布
 ```
+
+> 注：本计划早期版本规划过 `subtitle-parser.js`、`embedded-collector.js`、
+> `state.js` 等多文件拆分，实际实现时合并进了 `src/main.js`（约 860 行），
+> 按功能分区注释，避免插件多文件加载的额外复杂度。
 
 ---
 
@@ -187,10 +183,20 @@ PLAYING --[position >= duration]--> DONE
 
 ## 五、当前执行状态
 
+> 截至 v0.4.0（2026-09-08），阶段 0 与阶段 1 已全部完成并在 IINA 1.4.4 实机验证；
+> 阶段 2 的主体功能（盲打、统计、设置项）已完成。
+
 - [x] 阶段 0.1：脚手架创建
-- [ ] 阶段 0.2：冒烟测试
-- [ ] 阶段 1.1：SRT 解析模块
-- [ ] 阶段 1.2：字幕加载流程
-- [ ] 阶段 1.3：状态机
-- [ ] 阶段 1.4：输入窗口 UI
-- [ ] 阶段 1.5：Overlay 显示
+- [x] 阶段 0.2：冒烟测试（暂停 / 弹窗 / postMessage 双向通信）
+- [x] 阶段 1.1：SRT 解析模块（并入 `src/main.js`）
+- [x] 阶段 1.2：字幕加载流程（外挂优先 + 内嵌跟随）
+- [x] 阶段 1.3：状态机（IDLE / TYPING / PLAYING / PLAYING_WAITING / DONE）
+- [x] 阶段 1.4：输入窗口 UI（`ui/input-window.html`）
+- [x] 阶段 1.5：Overlay 显示与内嵌输入（`ui/overlay-input.html`）
+- [x] 阶段 2.1：盲打模式
+- [x] 阶段 2.2：统计模块（错误数 / 修正次数 / 正确率）
+- [x] 阶段 2.3：设置项（`ui/preferences.html`，四项 A-B 参数）
+- [ ] 阶段 2.4：字幕语种切换子菜单
+- [ ] 阶段 3：自定义字体/颜色、练习进度保存、快捷键
+
+已知未做项与限制详见 [README 的「已知限制」](../README.md#已知限制)。

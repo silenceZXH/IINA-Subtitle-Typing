@@ -1,30 +1,33 @@
-# IINA_learn-english-tool — 代码库理解与架构梳理
+# IINA Subtitle Typing — 代码库理解与架构梳理
 
 ## 1. 项目定位与用途
 
 **IINA 字幕打字练习插件**。在 IINA 播放器中逐句播放视频字幕，用户跟随打字练习英语听力与拼写。支持外挂 SRT 字幕和内嵌软字幕两种来源，提供视频内嵌输入面板（overlay）和独立窗口两种输入模式，具备 A-B 循环播放、盲打模式、正确率统计等功能。
 
 - confirmed：插件标识 `com.aaron.typing-practice`，版本 0.4.0（`Info.json:3-4`）。
-- confirmed：核心逻辑在 `src/main.js`（864 行），UI 为 3 个 HTML 文件。
+- confirmed：核心逻辑在 `src/main.js`（863 行），UI 为 3 个 HTML 文件。
 
 ## 2. 目录/文件结构
 
 ```
-IINA_learn-english-tool/
-├── plugin-src/                          # 插件源码
-│   ├── Info.json                        # 插件元数据（名称、版本、入口、权限、默认设置）
-│   ├── src/
-│   │   └── main.js                      # 插件主逻辑（字幕解析、A-B循环、状态机、消息通信）
-│   └── ui/
-│       ├── overlay-input.html           # 视频内嵌输入面板（深色透明主题）
-│       ├── input-window.html            # 独立窗口输入面板（浅色主题，逻辑同overlay）
-│       └── preferences.html             # 插件设置页（A-B循环4个参数）
-├── iina-typing-practice.iinaplugin/     # 构建/打包后的插件（与plugin-src内容一致，副本）
-├── IINA字幕打字插件 - 产品需求计划书（最终版）.md  # 需求文档（非代码）
-└── 开发计划.md                          # 开发计划（非代码）
+IINA-Subtitle-Typing/                    # 仓库根即插件包根（IINA 官方约定）
+├── Info.json                            # 插件元数据（名称、版本、入口、权限、默认设置、更新信息）
+├── src/
+│   └── main.js                          # 插件主逻辑（字幕解析、A-B循环、状态机、消息通信）
+├── ui/
+│   ├── overlay-input.html               # 视频内嵌输入面板（深色透明主题）
+│   ├── input-window.html                # 独立窗口输入面板（浅色主题，逻辑同overlay）
+│   └── preferences.html                 # 插件设置页（A-B循环4个参数）
+├── docs/
+│   ├── PRD.md                           # 产品需求文档
+│   ├── architecture.md                  # 本文件
+│   └── development-plan.md              # 开发计划
+├── screenshots/                         # README 截图
+├── build.sh                             # 打包脚本
+└── .github/workflows/release.yml        # 打 tag 自动发布
 ```
 
-- confirmed：代码文件共 5 个（main.js + 3 个 HTML + Info.json）。`iina-typing-practice.iinaplugin/` 是 `plugin-src/` 的打包副本，内容相同。
+- confirmed：代码文件共 4 个（main.js + 3 个 HTML）+ `Info.json`。仓库根目录即插件包根，不再有 `plugin-src/` 与打包副本两份重复代码。
 
 ## 3. 运行环境与入口
 
@@ -167,5 +170,5 @@ IINA_learn-english-tool/
 4. **`startEmbeddedCollector` 为空操作**：`main.js:436-439` 创建了一个 200ms 的空 setInterval，无实际逻辑，疑似遗留代码。
 5. **面板切换时可能丢失当前句**：`switchToWindowMode`/`switchToOverlayMode` 重新注册处理器，但依赖面板 ready 后 `echoCurrentSentence` 回显（`main.js:514-515,526-527`），若回显失败面板会显示"准备中..."。
 6. **无暂停/恢复练习功能**：菜单无暂停按钮，关闭面板即 `closeAllInput` 重置到 IDLE（`main.js:715-730`），无法中途暂停后继续。
-7. **`iina-typing-practice.iinaplugin/` 与 `plugin-src/` 重复**：两份相同代码，修改时需同步或确认以哪份为准（confirmed：文件结构和内容一致）。
+7. **仓库根目录即插件包根**：`Info.json` 必须在根目录，IINA 才能从 GitHub URL 安装并读取 `ghVersion` 做更新检查。不要把这些文件挪进子目录。
 8. **盲打模式下内嵌字幕仍可见**：盲打模式仅隐藏插件面板中的目标句（`overlay-input.html:236-239`），但视频画面上的 IINA 字幕可能仍在显示，无法真正盲打（inferred：代码中未关闭 IINA 原生字幕显示）。
