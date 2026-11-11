@@ -3,13 +3,7 @@
 > 在 [IINA](https://iina.io) 里一边看片，一边逐句打字跟读的插件。
 > 字幕出现 → 视频循环播放这一句 → 你跟着打字 → 打对才放行下一句。
 
-[![IINA](https://img.shields.io/badge/IINA-%E2%89%A5%201.4.0-0a84ff)](https://iina.io)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.4.0-orange)](CHANGELOG.md)
-
 纯 JavaScript 实现的 IINA 插件，**没有构建步骤、没有第三方依赖、不联网**。
-
-![内嵌输入面板](screenshots/overlay-mode.png)
 
 ---
 
@@ -27,8 +21,6 @@
 - [开发](#开发)
 - [已知限制](#已知限制)
 - [常见问题](#常见问题)
-- [文档](#文档)
-- [License](#license)
 
 ---
 
@@ -74,13 +66,11 @@
 
 ## 两种输入模式
 
-**内嵌模式（默认）** —— 面板悬浮在视频画面底部，不离开播放器窗口，适合全屏看片。
+**内嵌模式（默认）** —— 面板悬浮在视频画面底部，深色半透明，不离开播放器窗口，适合全屏看片。
 
-![内嵌输入面板](screenshots/overlay-mode.png)
+面板内容依次是：标题栏（练习名 + `12 / 96` 进度）、提示行、目标句（逐字符着色）、输入框、一排操作按钮（完成 / 跳过 / 重置 / 上一句 / 下一句 / 窗口模式 / 关闭）。
 
 **独立窗口模式** —— 独立的 macOS 窗口，浅色主题、等宽字体、按钮更大，适合窗口化播放或多屏。
-
-![独立窗口输入面板](screenshots/window-mode.png)
 
 随时可以通过菜单「切换输入模式（内嵌/窗口）」或面板上的「窗口模式 / 内嵌模式」按钮互换，当前句子会带过去。
 
@@ -101,19 +91,17 @@
 
 装好之后 IINA 会读取 `Info.json` 里的 `ghVersion`，与仓库 `main` 分支上的值比较，有新版本时提示更新。
 
-### 方式二：下载发布包
+### 方式二：本地开发安装
 
-从 [Releases](https://github.com/silenceZXH/IINA-Subtitle-Typing/releases) 下载 `iina-typing-practice-x.y.z.iinaplgz`，双击用 IINA 打开即可安装（`.iinaplgz` 就是改了扩展名的 zip）。
-
-### 方式三：本地开发安装
+仓库根目录就是插件包本身，可以直接链接给 IINA 当开发版：
 
 ```bash
 git clone https://github.com/silenceZXH/IINA-Subtitle-Typing.git
 cd IINA-Subtitle-Typing
-./build.sh --link      # 打包 + 以开发版插件链接进 IINA
+/Applications/IINA.app/Contents/MacOS/iina-plugin link "$PWD"
 ```
 
-`--link` 会在 `~/Library/Application Support/com.colliderli.iina/plugins/` 下创建 `.iinaplugin-dev` 软链接，之后改代码只需要在 IINA 里「重新载入所有插件」。
+这会在 `~/Library/Application Support/com.colliderli.iina/plugins/` 下创建一个 `.iinaplugin-dev` 软链接，之后改代码只需在 IINA 里「重新载入所有插件」。
 
 > 要求 IINA ≥ 1.4.0（插件系统从 1.4.0 开始提供）。本项目在 IINA 1.4.4 / macOS 上开发验证。
 
@@ -153,13 +141,13 @@ Movies/
 
 ### B. 视频内嵌软字幕
 
-MKV 里自带的字幕轨也可以练。插件在播放时实时读取当前字幕条目，字幕出现即进入打字，打完继续播放等下一条。
+MKV 里自带的文本字幕轨也可以练。插件在播放时实时读取当前字幕条目，字幕出现即进入打字，打完继续播放等下一条。
 
 内嵌模式没有「总共多少句」（没法预先知道），所以进度显示为「内嵌字幕模式」，也**不支持上一句**（用进度条拖回去即可）。
 
 ### C. 硬字幕/图片字幕
 
-**不支持**。画面上烧进画面的字幕、以及 PGS/VobSub 这类图形字幕无法被读取。
+**不支持**。画面上烧死的字幕、以及 PGS/VobSub 这类图形字幕无法被读取。
 
 ---
 
@@ -257,15 +245,8 @@ IINA-Subtitle-Typing/
 │   ├── overlay-input.html        # 内嵌输入面板（深色半透明）
 │   ├── input-window.html         # 独立窗口输入面板（浅色）
 │   └── preferences.html          # 设置页
-├── docs/
-│   ├── PRD.md                    # 产品需求文档
-│   ├── architecture.md           # 代码库理解与架构梳理（逐函数说明）
-│   └── development-plan.md       # 开发计划与 IINA API 调研结论
-├── screenshots/                  # README 截图
-├── build.sh                      # 打包脚本（生成 dist/*.iinaplgz）
-├── .github/workflows/release.yml # 打 tag 自动构建并发布产物
-├── CHANGELOG.md
-└── LICENSE
+├── .gitignore
+└── README.md
 ```
 
 `src/main.js` 各模块职责：
@@ -278,7 +259,7 @@ IINA-Subtitle-Typing/
 | `startABLoop()` / `stopABLoop()` | 50ms 轮询播放位置，到阈值暂停 / 跳回 |
 | `enterExternalTyping()` | 跳到句子起点、计算循环终点、推送句子到面板 |
 | `startEmbeddedFollowMode()` / `enterEmbeddedTyping()` | 轮询 `sub-text` 从空变为非空时触发新句子 |
-| `pushToInput()` | 双模式通信抽象，按 `state.inputMode` 发到 overlay 或 standardaloneWindow |
+| `pushToInput()` | 双模式通信抽象，按 `state.inputMode` 发到 overlay 或 standaloneWindow |
 | `handleInputAction()` | 面板动作分发（typed-correct / skip / reset / next / prev / 切换模式 / 关闭） |
 | `computeAccuracy()` | 按字符统计正确率 |
 
@@ -289,21 +270,23 @@ IINA-Subtitle-Typing/
 ```bash
 git clone https://github.com/silenceZXH/IINA-Subtitle-Typing.git
 cd IINA-Subtitle-Typing
-./build.sh --link     # 打包并注册为开发版插件
+/Applications/IINA.app/Contents/MacOS/iina-plugin link "$PWD"
 ```
 
 改完代码后在 IINA 里执行 **菜单 → 插件 → 重新载入所有插件**（或重启 IINA）查看效果。
 
-**打包**：`./build.sh` 会读取 `Info.json` 里的 `name` 和 `version`，生成 `dist/iina-typing-practice-<version>.iinaplgz`（zip 结构为插件根目录内容，不带外层文件夹）。
+**打包成 `.iinaplgz` 分发**（用 IINA 自带 CLI，见[官方文档](https://docs.iina.io/pages/creating-plugins.html)）：
 
-**发布新版本**（手动流程）：
+```bash
+/Applications/IINA.app/Contents/MacOS/iina-plugin pack /path/to/IINA-Subtitle-Typing
+```
 
-1. 修改 `Info.json` 的 `version`，并把 `ghVersion` 加 1；
-2. 更新 `CHANGELOG.md`；
-3. 提交后打 tag：`git tag v0.4.1 && git push origin v0.4.1`；
-4. GitHub Actions 会自动构建并把 `.iinaplgz` 上传到该 Release。
+产物是同目录下的 `IINA-Subtitle-Typing-<version>.iinaplgz`。`.iinaplgz` 本质是 zip，双击即可让 IINA 安装。
 
-> `ghVersion` 是 IINA 判断「有没有新版本」的依据（整数，每次发布必增）。`version` 是给人看的语义化版本号。两个字段都要改。
+**发布新版本**时记得同时改 `Info.json` 里的两个字段：
+
+- `version`：语义化版本号，给人看；
+- `ghVersion`：整数，IINA 靠它判断「有没有新版本」，**每次发布必须加 1**，否则不会提示更新。
 
 ---
 
@@ -318,7 +301,7 @@ cd IINA-Subtitle-Typing
 5. **练习统计只存在内存里**，关掉面板或退出练习即清空，没有历史记录和断点续练。
 6. **没有暂停/恢复练习**，关闭面板等于结束本次练习。
 7. **输入面板依赖 IINA 的 webview 消息通道**：面板刚打开时的句子通过 `request-current` 拉取，有 250ms × 8 次的兜底重试，极端情况下可能显示「准备中...」。
-8. 需要在 macOS 上使用，`overlay` 内嵌模式依赖 IINA 的 video-overlay 能力。
+8. 只在 macOS + IINA 上工作，内嵌模式依赖 IINA 的 `video-overlay` 能力。
 
 ---
 
@@ -341,22 +324,3 @@ A：可以，比对逻辑对中日文字符有白名单处理。
 
 **Q：怎么改插件行为？**
 A：所有逻辑都在 `src/main.js` 和三个 HTML 里，没有构建步骤，直接改即可。
-
----
-
-## 文档
-
-- [产品需求文档](docs/PRD.md) —— 功能定义与边界
-- [代码库理解与架构梳理](docs/architecture.md) —— 逐文件、逐函数的实现说明
-- [开发计划](docs/development-plan.md) —— IINA API 调研结论与技术风险预案
-- [更新日志](CHANGELOG.md)
-
----
-
-## License
-
-[MIT](LICENSE) © 2026 Aaron
-
----
-
-> 说明：`screenshots/` 中的截图由插件的真实 HTML/CSS 渲染生成，句子为示例内容。
